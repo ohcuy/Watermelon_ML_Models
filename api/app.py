@@ -58,9 +58,37 @@ def extract_features(file_path: str):
         # 특성 추출
         features = extractor.extract_all_features(processed_audio, sr)
         logger.info(f"특성 추출 완료: {features.shape}")
+        
+        # 🔍 특성 이름과 값 출력
+        feature_names = extractor.get_feature_names()
+        logger.info(f"=== 추출된 51개 특성 ===")
+    
+        for i, (name, value) in enumerate(zip(feature_names, features)):
+            logger.info(f"  [{i+1:2d}] {name:25s}: {value:10.6f}")
+        
+        # 특성 그룹별 요약
+        feature_groups = extractor.get_feature_groups()
+        logger.info(f"=== 특성 그룹별 요약 ===")
+        
+        start_idx = 0
+        for group_name, group_features in feature_groups.items():
+            if len(group_features) > 0:
+                end_idx = start_idx + len(group_features)
+                group_values = features[start_idx:end_idx]
+                logger.info(f"  {group_name:20s}: {len(group_features):2d}개, "
+                           f"평균={np.mean(group_values):8.4f}, "
+                           f"표준편차={np.std(group_values):8.4f}")
+                start_idx = end_idx
+        
+        # NaN/Inf 확인
+        nan_count = np.sum(np.isnan(features))
+        inf_count = np.sum(np.isinf(features))
+        if nan_count > 0 or inf_count > 0:
+            logger.warning(f"특성 품질 이슈: NaN={nan_count}개, Inf={inf_count}개")
+        
+        logger.info(f"특성 값 범위: [{np.min(features):.6f}, {np.max(features):.6f}]")
     
         return features.reshape(1, -1)
-        
     except Exception as e:
         logger.error(f"특성 추출 실패: {file_path}, 오류: {e}")
         raise
